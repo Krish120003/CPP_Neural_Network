@@ -1,30 +1,34 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <memory>
 
-class Value
+#define SV std::shared_ptr<Value>
+
+// https://en.cppreference.com/w/cpp/memory/enable_shared_from_this
+class Value : std::enable_shared_from_this<Value>
 {
 private:
 public:
     double data;
     double grad;
-    std::vector<Value *> children;  // children of this node in the computational graph
+    std::vector<SV> children;       // children of this node in the computational graph
     std::function<void()> backprop; // per-value backpropagation function
     std::string op;
 
     Value(double data);
-    Value(double data, std::vector<Value *> children);
+    Value(double data, std::vector<SV> children);
     ~Value();
 
-    Value add(Value &v); // addition
-    Value mul(Value &v); // multiplication
-    Value sub(Value &v); // subtraction
-    Value div(Value &v); // division
-    Value pow(int v);    // power
-    Value pow(double v); // power
-    Value neg();         // negation
-    Value exp();         // exponential
-    void backward();     // backpropagation, on the full computational graph
+    SV add(SV v);     // addition
+    SV mul(SV v);     // multiplication
+    SV sub(SV v);     // subtraction
+    SV div(SV v);     // division
+    SV pow(int v);    // power
+    SV pow(double v); // power
+    SV neg();         // negation
+    SV exp();         // exponential
+    void backward();  // backpropagation, on the full computational graph
 
     std::string to_string();
 };

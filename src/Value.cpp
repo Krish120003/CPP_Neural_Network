@@ -1,14 +1,12 @@
 #include "Value.hpp"
-#include <cmath>
+#include <iostream>
 #include <string>
 #include <vector>
 #include <set>
-#include <iostream>
+#include <memory>
+#include <cmath>
 
-#include <iostream>
-#include <algorithm> // for copy
-#include <iterator>  // for ostream_iterator
-#include <vector>
+#define SV std::shared_ptr<Value>
 
 Value::Value(double data)
 {
@@ -18,7 +16,7 @@ Value::Value(double data)
     this->op = "none";
 }
 
-Value::Value(double data, std::vector<Value *> children)
+Value::Value(double data, std::vector<SV> children)
 {
     this->data = data;
     this->grad = 0;
@@ -31,80 +29,78 @@ Value::~Value()
 {
 }
 
-Value Value::add(Value &v)
+SV Value::add(SV v)
 {
-    Value out = Value(this->data + v.data, {this, &v});
+    // https://cplusplus.com/reference/memory/make_shared/
+    SV out(new Value(this->data + v->data, {shared_from_this(), v}));
 
-    out.backprop = [this, &out, &v]()
+    out->backprop = [this, v, &out]()
     {
-        this->grad += out.grad;
-        v.grad += out.grad;
+        this->grad += out->grad;
+        v->grad += out->grad;
     };
 
-    out.op = "add";
+    out->op = "add";
 
     return out;
 }
 
-Value Value::mul(Value &v)
+SV Value::mul(SV v)
 {
-    Value out = Value(this->data * v.data, {this, &v});
+    SV out(new Value(this->data * v->data, {shared_from_this(), v}));
 
-    out.backprop = [this, &out, &v]()
+    out->backprop = [this, &out, &v]()
     {
-        this->grad += v.data * out.grad;
-        v.grad += this->data * out.grad;
+        this->grad += v->data * out->grad;
+        v->grad += this->data * out->grad;
     };
 
-    out.op = "mul";
+    out->op = "mul";
 
     return out;
 }
 
-Value Value::pow(double p)
+SV Value::pow(double p)
 {
-    Value out = Value(std::pow(this->data, p), {this});
+    SV out(new Value(std::pow(this->data, p), {shared_from_this()}));
 
-    out.backprop = [this, &out, &p]()
+    out->backprop = [this, &out, &p]()
     {
-        this->grad += p * std::pow(this->data, p - 1) * out.grad;
+        this->grad += p * std::pow(this->data, p - 1) * out->grad;
     };
 
-    out.op = "pow";
+    out->op = "pow";
 
     return out;
 }
 
-Value Value::exp()
+SV Value::exp()
 {
-    Value out = Value(std::exp(this->data), {this});
-    out.backprop = [this, &out]()
+    SV out(new Value(std::exp(this->data), {shared_from_this()}));
+    out->backprop = [this, &out]()
     {
         std::cout << "backprop exp" << std::endl;
-        this->grad += std::exp(this->data) * out.grad;
+        this->grad += std::exp(this->data) * out->grad;
     };
-    out.op = "exp";
+    out->op = "exp";
 
     return out;
 }
 
-Value Value::neg()
+SV Value::neg()
 {
-    Value negative_one = Value(-1.0);
+    SV negative_one(new Value(-1.0));
     return this->mul(negative_one);
 }
 
-Value Value::sub(Value &v)
+SV Value::sub(SV v)
 {
-    Value negative = v.neg();
-    return this->add(negative);
+    return this->add(v->neg());
 }
 
-Value Value::div(Value &v)
+SV Value::div(SV v)
 {
-    Value negative_one = Value(-1.0);
-    Value inverse = v.pow(-1.0);
-    return this->mul(inverse);
+    return this->mul(v->pow(-1.0));
 }
 
 std::string Value::to_string()
@@ -117,16 +113,16 @@ void Value::backward()
     // we need to call the backpropogation in order
     // of the computational graph, so we use a queue
     // built from a topological sort of the graph
-    std::vector<Value *> queue;
-    std::set<Value *> visited;
-    std::vector<Value *> topo;
+    std::vector<SV> queue;
+    std::set<SV> visited;
+    std::vector<SV> topo;
 
-    queue.push_back(this);
+    queue.push_back(shared_from_this());
 
     std::cout << "topological sort" << std::endl;
     while (queue.size() > 0)
     {
-        Value *current = queue.back();
+        SV current = queue.back();
         queue.pop_back();
 
         if (visited.count(current) < 1)
@@ -145,7 +141,7 @@ void Value::backward()
             }
             std::cout << "backprop done" << std::endl;
 
-            for (Value *child : current->children)
+            for (SV child : current->children)
             {
                 queue.push_back(child);
             }

@@ -3,19 +3,22 @@
 
 using namespace std;
 
+#define SV std::shared_ptr<Value>
+
 int main()
 {
 
-    Value x = Value(1);
-    Value y = Value(1);
-    Value z = x.mul(y).exp();
-    z.grad = 1;
+    SV x(new Value(1));
+    SV y(new Value(2));
+    SV z = x->add(y)->exp();
 
-    z.backward();
+    // z.grad = 1;
 
-    cout << x.to_string() << endl;
-    cout << y.to_string() << endl;
-    cout << z.to_string() << endl;
+    // z.backward();
+
+    cout << x->to_string() << endl;
+    cout << y->to_string() << endl;
+    cout << z->to_string() << endl;
 
     return 0;
 }
