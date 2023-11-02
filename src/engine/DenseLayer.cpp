@@ -1,6 +1,7 @@
 #include <vector>
-#include "Neuron.cpp"
 #include <memory>
+
+#include "Neuron.cpp"
 
 class DenseLayer
 {
@@ -11,14 +12,14 @@ public:
     ~DenseLayer();
 
     // methods
+    void zero_grad();
     std::vector<double> forward(std::vector<double> inputs);
-    std::vector<double> backward(std::vector<double> grad);
+    void backward(std::vector<double> grad);
+    void descend(double learning_rate);
 
     // data
     std::vector<Neuron> neurons;
     std::vector<double> last_input;
-    std::vector<double> wgrad; // the gradient of the weights
-    std::vector<double> bgrad; // the gradient of the bias
 };
 
 DenseLayer::~DenseLayer()
@@ -37,6 +38,14 @@ DenseLayer::DenseLayer(int input_size, int output_size)
     }
 }
 
+void DenseLayer::zero_grad()
+{
+    for (int i = 0; i < this->neurons.size(); i++)
+    {
+        this->neurons[i].zero_grad();
+    }
+}
+
 std::vector<double> DenseLayer::forward(std::vector<double> inputs)
 {
     this->last_input = inputs;
@@ -48,4 +57,20 @@ std::vector<double> DenseLayer::forward(std::vector<double> inputs)
     }
 
     return outputs;
+}
+
+void DenseLayer::backward(std::vector<double> grad)
+{
+    for (int i = 0; i < this->neurons.size(); i++)
+    {
+        this->neurons[i].backward(last_input, grad[i]);
+    }
+}
+
+void DenseLayer::descend(double learning_rate)
+{
+    for (int i = 0; i < this->neurons.size(); i++)
+    {
+        this->neurons[i].descend(learning_rate);
+    }
 }

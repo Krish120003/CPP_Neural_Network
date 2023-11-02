@@ -10,7 +10,8 @@ public:
 
     // methods
     std::vector<double> forward(std::vector<double> inputs);
-    std::vector<double> backward(std::vector<double> grad);
+    void backward(std::vector<double> grad);
+    void backward(DenseLayer &prev_layer);
 
     // data
     std::vector<double> last_input;
@@ -36,4 +37,52 @@ std::vector<double> ReLuLayer::forward(std::vector<double> inputs)
     }
 
     return outputs;
+}
+
+void ReLuLayer::backward(std::vector<double> chain_grad)
+{
+    this->grad = std::vector<double>(this->last_input.size());
+
+    for (int i = 0; i < this->last_input.size(); i++)
+    {
+        this->grad[i] = this->last_input[i] > 0 ? chain_grad[i] : 0;
+    }
+}
+
+void ReLuLayer::backward(DenseLayer &prev_layer)
+{
+    this->grad = std::vector<double>(this->last_input.size());
+    // cout << "Building ReLuLayer grad..." << endl;
+
+    // cout << "ReLu Last Input: ";
+    // print_vector(this->last_input);
+
+    // cout << "Previous Layer's Input: ";
+    // print_vector(prev_layer.last_input);
+    // cout << "Previous Layer's Weights: \n";
+    // print_vector(prev_layer.neurons[0].weights);
+    // print_vector(prev_layer.neurons[1].weights);
+    // cout << "Previous Layer's Grads: \n";
+    // print_vector(prev_layer.neurons[0].wgrad);
+    // print_vector(prev_layer.neurons[1].wgrad);
+
+    // cout << "Number of neurons:" << prev_layer.neurons.size() << endl;
+
+    for (int i = 0; i < prev_layer.last_input.size(); i++)
+    {
+
+        for (int n = 0; n < prev_layer.neurons.size(); n++)
+        {
+            double old_grad = prev_layer.neurons[n].wgrad[i] / prev_layer.last_input[i];
+            this->grad[i] += prev_layer.neurons[n].weights[i] * old_grad;
+            if (this->last_input[i] < 0)
+            {
+                this->grad[i] = 0;
+            }
+        }
+    }
+
+    // cout << "ReLuLayer grad built." << endl;
+
+    // print_vector(this->grad);
 }

@@ -5,6 +5,7 @@
 #include "engine/DenseLayer.cpp"
 #include "engine/ReLuLayer.cpp"
 #include "engine/SoftmaxLayer.cpp"
+#include "engine/MeanSquaredErrorLoss.cpp"
 
 using namespace std;
 
@@ -20,19 +21,19 @@ void reverse_bytes(char *bytes, int size)
     }
 }
 
-void print_vector(vector<double> v)
-{
-    cout << "[";
-    for (int i = 0; i < v.size(); i++)
-    {
-        cout << v[i];
-        if (i != v.size() - 1)
-        {
-            cout << ", ";
-        }
-    }
-    cout << "]" << endl;
-}
+// void print_vector(vector<double> v)
+// {
+//     cout << "[";
+//     for (int i = 0; i < v.size(); i++)
+//     {
+//         cout << v[i];
+//         if (i != v.size() - 1)
+//         {
+//             cout << ", ";
+//         }
+//     }
+//     cout << "]" << endl;
+// }
 
 bool load_data(vector<VD> *images, vector<int> *labels)
 {
@@ -133,6 +134,9 @@ bool load_data(vector<VD> *images, vector<int> *labels)
 
 int main()
 {
+    int seed = time(NULL);
+    cout << "Seed: " << seed << endl;
+    srand(seed);
 
     vector<VD> images;
     vector<int> labels;
@@ -148,21 +152,70 @@ int main()
     cout << "Images: " << images.size() << endl;
     cout << "Labels: " << labels.size() << endl;
 
-    DenseLayer d1 = DenseLayer(2, 10);
+    DenseLayer d1 = DenseLayer(28 * 28, 512);
     ReLuLayer a1 = ReLuLayer();
-    DenseLayer d2 = DenseLayer(10, 2);
-    SoftmaxLayer a2 = SoftmaxLayer();
+    DenseLayer d2 = DenseLayer(512, 64);
+    ReLuLayer a2 = ReLuLayer();
+    DenseLayer d3 = DenseLayer(64, 32);
+    ReLuLayer a3 = ReLuLayer();
+    DenseLayer d4 = DenseLayer(32, 1);
+    ReLuLayer a4 = ReLuLayer();
 
-    VD inputs = {1.0, 2.0};
-    VD d1_output = d1.forward(inputs);
-    VD a1_output = a1.forward(d1_output);
-    VD d2_output = d2.forward(a1_output);
-    VD a2_output = a2.forward(d2_output);
+    for (int epoch = 0; epoch < 10; epoch++)
+    {
+        double learning_rate = 0.01;
+        if (epoch < 3)
+        {
+            learning_rate = 0.1 / (epoch + 1);
+        }
+        double mean_loss = 0.0;
+        int i = 0;
+        for (; i < 500; i++)
+        {
+            int index = i;
+            VD image = images[index];
+            int label = labels[index];
 
-    print_vector(d1_output);
-    print_vector(a1_output);
-    print_vector(d2_output);
-    print_vector(a2_output);
+            // forward pass
+            VD d1_output = d1.forward(image);
+            VD a1_output = a1.forward(d1_output);
+            VD d2_output = d2.forward(a1_output);
+            VD a2_output = a2.forward(d2_output);
+            VD d3_output = d3.forward(a2_output);
+            VD a3_output = a3.forward(d3_output);
+            VD d4_output = d4.forward(a3_output);
+            VD a4_output = a4.forward(d4_output);
 
+            MeanSquaredErrorLoss loss = MeanSquaredErrorLoss();
+            double loss_output = loss.forward(a4_output, {(double)label});
+
+            mean_loss += loss_output;
+            cout << "i:" << i << " Loss: " << (mean_loss / (i + 1)) << "\r" << flush;
+
+            // backward pass
+            // zero_grad everything
+            d1.zero_grad();
+            d2.zero_grad();
+            d3.zero_grad();
+            d4.zero_grad();
+
+            loss.backward(1.0);
+            a4.backward(loss.grad);
+            d4.backward(a4.grad);
+            a3.backward(d4);
+            d3.backward(a3.grad);
+            a2.backward(d3);
+            d2.backward(a2.grad);
+            a1.backward(d2);
+            d1.backward(a1.grad);
+
+            // update weights
+            d1.descend(learning_rate);
+            d2.descend(learning_rate);
+            d3.descend(learning_rate);
+            d4.descend(learning_rate);
+        }
+        cout << "Epoch: " << epoch << " | Loss: " << (mean_loss / i) << endl;
+    }
     return 0;
 }

@@ -3,6 +3,8 @@
 
 using namespace std;
 
+// change random seed
+
 double get_random()
 {
     // return random number between -1 and 1
