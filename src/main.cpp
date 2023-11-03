@@ -37,7 +37,7 @@ void reverse_bytes(char *bytes, int size)
 //     cout << "]" << endl;
 // }
 
-bool load_data(vector<VD> *images, vector<int> *labels)
+bool load_data(vector<VD> *images_train, vector<int> *labels_train, vector<VD> *images_test, vector<int> *labels_test)
 {
     // Load labels
 
@@ -70,12 +70,12 @@ bool load_data(vector<VD> *images, vector<int> *labels)
         // each label is 1 byte, so we use a char
         char label;
         labels_file.read(&label, sizeof(label));
-        labels->push_back((int)label);
+        labels_train->push_back((int)label);
     };
 
     labels_file.close();
 
-    // Load images
+    // Load images_train
     ifstream images_file;
     images_file.open("data/train-images-idx3-ubyte", ios::binary | ios::in);
     if (!images_file.is_open())
@@ -109,7 +109,7 @@ bool load_data(vector<VD> *images, vector<int> *labels)
     images_file.read((char *)&number_of_columns, sizeof(number_of_columns));
     reverse_bytes((char *)&number_of_columns, sizeof(number_of_columns));
 
-    // read images
+    // read images_train
     for (int i = 0; i < number_of_items; i++)
     {
         // each image is 28 * 28 = 784 bytes
@@ -126,10 +126,96 @@ bool load_data(vector<VD> *images, vector<int> *labels)
             image_vector[j] = (double)image[j] / 255.0;
         }
 
-        images->push_back(image_vector);
+        images_train->push_back(image_vector);
     };
 
     images_file.close();
+
+    // Load test labels
+    ifstream test_labels_file;
+    test_labels_file.open("data/t10k-labels-idx1-ubyte", ios::binary | ios::in);
+    if (!test_labels_file.is_open())
+    {
+        return false;
+    }
+
+    // seek to beginning of file
+    test_labels_file.seekg(0, ios::beg);
+
+    // first 32 bits are magic number
+    // next 32 bits are number of items
+
+    // read magic number
+    test_labels_file.read((char *)&magic_number, sizeof(magic_number));
+    reverse_bytes((char *)&magic_number, sizeof(magic_number));
+
+    test_labels_file.read((char *)&number_of_items, sizeof(number_of_items));
+    reverse_bytes((char *)&number_of_items, sizeof(number_of_items));
+
+    // read labels
+    for (int i = 0; i < number_of_items; i++)
+    {
+        // each label is 1 byte, so we use a char
+        char label;
+        test_labels_file.read(&label, sizeof(label));
+        labels_test->push_back((int)label);
+    };
+
+    test_labels_file.close();
+
+    // Load images_test
+    ifstream test_images_file;
+
+    test_images_file.open("data/t10k-images-idx3-ubyte", ios::binary | ios::in);
+    if (!test_images_file.is_open())
+    {
+        return false;
+    }
+
+    // seek to beginning of file
+    test_images_file.seekg(0, ios::beg);
+
+    // first 32 bits are magic number
+    // next 32 bits are number of items
+    // next 32 bits are number of rows
+    // next 32 bits are number of columns
+
+    // read magic number
+    test_images_file.read((char *)&magic_number, sizeof(magic_number));
+    reverse_bytes((char *)&magic_number, sizeof(magic_number));
+
+    // read number of items
+    test_images_file.read((char *)&number_of_items, sizeof(number_of_items));
+    reverse_bytes((char *)&number_of_items, sizeof(number_of_items));
+
+    // read number of rows
+    test_images_file.read((char *)&number_of_rows, sizeof(number_of_rows));
+    reverse_bytes((char *)&number_of_rows, sizeof(number_of_rows));
+
+    // read number of columns
+    test_images_file.read((char *)&number_of_columns, sizeof(number_of_columns));
+    reverse_bytes((char *)&number_of_columns, sizeof(number_of_columns));
+
+    // read images_test
+
+    for (int i = 0; i < number_of_items; i++)
+    {
+        // each image is 28 * 28 = 784 bytes
+        // so we use a char array
+        char image[784];
+        test_images_file.read(image, sizeof(image));
+
+        // convert to vector of doubles
+        VD image_vector = VD(784);
+        for (int j = 0; j < 784; j++)
+        {
+            // we normalize the values to be between 0 and 1
+            // by dividing by 255, the maximum value of a byte
+            image_vector[j] = (double)image[j] / 255.0;
+        }
+
+        images_test->push_back(image_vector);
+    };
 
     return true;
 }
@@ -140,10 +226,13 @@ int main()
     cout << "Seed: " << seed << endl;
     srand(seed);
 
-    vector<VD> images;
-    vector<int> labels;
+    vector<VD> images_train;
+    vector<int> labels_train;
 
-    bool loaded = load_data(&images, &labels);
+    vector<VD> images_test;
+    vector<int> labels_test;
+
+    bool loaded = load_data(&images_train, &labels_train, &images_test, &labels_test);
     if (!loaded)
     {
         cout << "Failed to load data" << endl;
@@ -151,8 +240,10 @@ int main()
     }
 
     cout << "Data loaded" << endl;
-    cout << "Images: " << images.size() << endl;
-    cout << "Labels: " << labels.size() << endl;
+    cout << "Train Images: " << images_train.size() << endl;
+    cout << "Train Labels: " << labels_train.size() << endl;
+    cout << "Test Images: " << images_test.size() << endl;
+    cout << "Test Labels: " << labels_test.size() << endl;
 
     DenseLayer d1 = DenseLayer(28 * 28, 64);
     LeakyReLuLayer a1 = LeakyReLuLayer();
@@ -165,19 +256,19 @@ int main()
 
     for (int epoch = 0; epoch < 100; epoch++)
     {
-        double learning_rate = 0.001;
-        if (epoch < 2)
+        double learning_rate = 0.002;
+        if (epoch < 5)
         {
             learning_rate = 0.0001;
         }
         double mean_loss = 0.0;
         int i = 0;
         double train_correct = 0.0;
-        for (; i < images.size() / 3; i++)
+        for (; i < images_train.size(); i++)
         {
             int index = i;
-            VD image = images[index];
-            int label = labels[index];
+            VD image = images_train[index];
+            int label = labels_train[index];
 
             // forward pass
             VD d1_output = d1.forward(image);
@@ -246,11 +337,11 @@ int main()
 
         // find accuracy
         double correct = 0;
-        for (int j = 20000; j < 30000; j++)
+        for (int j = 0; j < images_test.size(); j++)
         {
             int index = j;
-            VD image = images[index];
-            int label = labels[index];
+            VD image = images_test[index];
+            int label = labels_test[index];
 
             // forward pass
             VD d1_output = d1.forward(image);
@@ -269,8 +360,8 @@ int main()
             }
         }
 
-        double train_accuracy = (double)train_correct / 20000.0;
-        double test_accuracy = (double)correct / 10000.0;
+        double train_accuracy = (double)train_correct / (double)images_train.size();
+        double test_accuracy = (double)correct / (double)images_test.size();
 
         cout << "Epoch: " << epoch << " | Loss: " << (mean_loss / i) << " | Train Accuracy: " << train_accuracy << " | Test Accuracy: " << test_accuracy << endl;
     }
