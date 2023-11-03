@@ -1,9 +1,11 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-
+#include <iomanip>
+#include <cmath>
 #include "engine/DenseLayer.cpp"
 #include "engine/ReLuLayer.cpp"
+#include "engine/LeakyRelu.cpp"
 #include "engine/SoftmaxLayer.cpp"
 #include "engine/MeanSquaredErrorLoss.cpp"
 
@@ -152,25 +154,26 @@ int main()
     cout << "Images: " << images.size() << endl;
     cout << "Labels: " << labels.size() << endl;
 
-    DenseLayer d1 = DenseLayer(28 * 28, 512);
-    ReLuLayer a1 = ReLuLayer();
-    DenseLayer d2 = DenseLayer(512, 64);
-    ReLuLayer a2 = ReLuLayer();
+    DenseLayer d1 = DenseLayer(28 * 28, 64);
+    LeakyReLuLayer a1 = LeakyReLuLayer();
+    DenseLayer d2 = DenseLayer(64, 64);
+    LeakyReLuLayer a2 = LeakyReLuLayer();
     DenseLayer d3 = DenseLayer(64, 32);
-    ReLuLayer a3 = ReLuLayer();
+    LeakyReLuLayer a3 = LeakyReLuLayer();
     DenseLayer d4 = DenseLayer(32, 1);
-    ReLuLayer a4 = ReLuLayer();
+    LeakyReLuLayer a4 = LeakyReLuLayer();
 
-    for (int epoch = 0; epoch < 10; epoch++)
+    for (int epoch = 0; epoch < 100; epoch++)
     {
-        double learning_rate = 0.01;
-        if (epoch < 3)
+        double learning_rate = 0.001;
+        if (epoch < 2)
         {
-            learning_rate = 0.1 / (epoch + 1);
+            learning_rate = 0.0001;
         }
         double mean_loss = 0.0;
         int i = 0;
-        for (; i < 500; i++)
+        double train_correct = 0.0;
+        for (; i < images.size() / 3; i++)
         {
             int index = i;
             VD image = images[index];
@@ -186,11 +189,36 @@ int main()
             VD d4_output = d4.forward(a3_output);
             VD a4_output = a4.forward(d4_output);
 
+            int prediction = (int)round(a4_output[0]);
+            if (prediction == label)
+            {
+                train_correct += 1.0;
+            }
+
             MeanSquaredErrorLoss loss = MeanSquaredErrorLoss();
             double loss_output = loss.forward(a4_output, {(double)label});
 
             mean_loss += loss_output;
-            cout << "i:" << i << " Loss: " << (mean_loss / (i + 1)) << "\r" << flush;
+            if (i % 50 == 0)
+                cout << setprecision(4) << "i:" << i << " | Mean Loss: " << (mean_loss / (i + 1)) << " | Last Output: " << a4_output[0] << " | Label: " << label << endl;
+
+            // cout << "Layerwise outputs: \n";
+            // cout << "Dense 1: ";
+            // print_vector(d1_output);
+            // cout << "Relu 1:  ";
+            // print_vector(a1_output);
+            // cout << "Dense 2: ";
+            // print_vector(d2_output);
+            // cout << "Relu 2:  ";
+            // print_vector(a2_output);
+            // cout << "Dense 3: ";
+            // print_vector(d3_output);
+            // cout << "Relu 3:  ";
+            // print_vector(a3_output);
+            // cout << "Dense 4: ";
+            // print_vector(d4_output);
+            // cout << "Relu 4:  ";
+            // print_vector(a4_output);
 
             // backward pass
             // zero_grad everything
@@ -215,7 +243,36 @@ int main()
             d3.descend(learning_rate);
             d4.descend(learning_rate);
         }
-        cout << "Epoch: " << epoch << " | Loss: " << (mean_loss / i) << endl;
+
+        // find accuracy
+        double correct = 0;
+        for (int j = 20000; j < 30000; j++)
+        {
+            int index = j;
+            VD image = images[index];
+            int label = labels[index];
+
+            // forward pass
+            VD d1_output = d1.forward(image);
+            VD a1_output = a1.forward(d1_output);
+            VD d2_output = d2.forward(a1_output);
+            VD a2_output = a2.forward(d2_output);
+            VD d3_output = d3.forward(a2_output);
+            VD a3_output = a3.forward(d3_output);
+            VD d4_output = d4.forward(a3_output);
+            VD a4_output = a4.forward(d4_output);
+
+            int prediction = (int)round(a4_output[0]);
+            if (prediction == label)
+            {
+                correct += 1.0;
+            }
+        }
+
+        double train_accuracy = (double)train_correct / 20000.0;
+        double test_accuracy = (double)correct / 10000.0;
+
+        cout << "Epoch: " << epoch << " | Loss: " << (mean_loss / i) << " | Train Accuracy: " << train_accuracy << " | Test Accuracy: " << test_accuracy << endl;
     }
     return 0;
 }

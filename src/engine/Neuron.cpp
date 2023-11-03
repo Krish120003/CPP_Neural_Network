@@ -32,7 +32,7 @@ public:
 Neuron::Neuron(int input_size)
 {
     this->weights = std::vector<double>(input_size);
-    this->bias = get_random();
+    this->bias = 0.1 * get_random();
 
     for (int i = 0; i < input_size; i++)
     {

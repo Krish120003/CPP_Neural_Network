@@ -13,7 +13,6 @@ using namespace std;
 
 int main()
 {
-    srand(time(NULL));
 
     vector<VD> images;
     vector<double> labels;
@@ -36,12 +35,12 @@ int main()
     DenseLayer d2 = DenseLayer(4, 1);
     ReLuLayer a2 = ReLuLayer();
 
-    for (int epoch = 0; epoch < 1000; epoch++)
+    for (int epoch = 0; epoch < 25; epoch++)
     {
         double learning_rate = 0.001;
         double mean_loss = 0.0;
 
-        for (int i = 0; i < images.size(); i++)
+        for (int i = 0; i < 1000; i++)
         {
             int index = i;
             VD image = images[index];
