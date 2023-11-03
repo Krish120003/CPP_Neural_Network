@@ -1,4 +1,5 @@
 #include <vector>
+#include <cmath>
 
 class SoftmaxLayer
 {
@@ -10,7 +11,7 @@ public:
 
     // methods
     std::vector<double> forward(std::vector<double> inputs);
-    std::vector<double> backward(std::vector<double> grad);
+    void backward(std::vector<double> chain_grad);
 
     // data
     std::vector<double> last_input;
@@ -43,4 +44,9 @@ std::vector<double> SoftmaxLayer::forward(std::vector<double> inputs)
     }
 
     return outputs;
+}
+
+void SoftmaxLayer::backward(std::vector<double> chain_grad)
+{
+    this->grad = std::vector<double>(this->last_input.size());
 }
