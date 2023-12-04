@@ -1,6 +1,6 @@
 #include <vector>
 
-#define LEAK 0.01
+#define LEAK 0.1
 
 class LeakyReLuLayer
 {

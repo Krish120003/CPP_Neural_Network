@@ -47,7 +47,7 @@ void MeanSquaredErrorLoss::backward(double grad)
 
     for (int i = 0; i < this->last_input.size(); i++)
     {
-        this->grad.at(i) = 2 * (this->last_input[i] - this->last_target[i]);
+        this->grad.at(i) = 2 * this->last_input[i] - this->last_target[i];
         this->grad.at(i) *= grad;
     }
 }

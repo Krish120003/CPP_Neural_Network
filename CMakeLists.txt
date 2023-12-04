@@ -13,9 +13,5 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 include_directories("./include/")
 
 file(GLOB TARGET_SRC "./src/main.cpp")
-file(GLOB TEST_TARGET_SRC "./src/test.cpp")
-file(GLOB XOR_NET "./src/learn_xor.cpp")
 
 add_executable(main ${TARGET_SRC})
-add_executable(test ${TEST_TARGET_SRC})
-add_executable(xor ${XOR_NET})

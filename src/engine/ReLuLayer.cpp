@@ -52,29 +52,18 @@ void ReLuLayer::backward(std::vector<double> chain_grad)
 void ReLuLayer::backward(DenseLayer &prev_layer)
 {
     this->grad = std::vector<double>(this->last_input.size());
-    // cout << "Building ReLuLayer grad..." << endl;
-
-    // cout << "ReLu Last Input: ";
-    // print_vector(this->last_input);
-
-    // cout << "Previous Layer's Input: ";
-    // print_vector(prev_layer.last_input);
-    // cout << "Previous Layer's Weights: \n";
-    // print_vector(prev_layer.neurons[0].weights);
-    // print_vector(prev_layer.neurons[1].weights);
-    // cout << "Previous Layer's Grads: \n";
-    // print_vector(prev_layer.neurons[0].wgrad);
-    // print_vector(prev_layer.neurons[1].wgrad);
-
-    // cout << "Number of neurons:" << prev_layer.neurons.size() << endl;
 
     for (int i = 0; i < prev_layer.last_input.size(); i++)
     {
-
         for (int n = 0; n < prev_layer.neurons.size(); n++)
         {
+            cout << "INNER LOOP" << endl;
+            cout << prev_layer.neurons[n].wgrad[i] << endl;
+            cout << prev_layer.last_input[i] << endl;
             double old_grad = prev_layer.neurons[n].wgrad[i] / prev_layer.last_input[i];
+            cout << "old_grad: " << old_grad << endl;
             this->grad[i] += prev_layer.neurons[n].weights[i] * old_grad;
+
             if (this->last_input[i] < 0)
             {
                 this->grad[i] = 0;

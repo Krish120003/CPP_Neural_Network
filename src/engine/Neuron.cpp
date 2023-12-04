@@ -32,7 +32,7 @@ public:
 Neuron::Neuron(int input_size)
 {
     this->weights = std::vector<double>(input_size);
-    this->bias = 0.1 * get_random();
+    this->bias = 0.01 * get_random();
 
     for (int i = 0; i < input_size; i++)
     {
@@ -63,6 +63,7 @@ double Neuron::forward(std::vector<double> inputs)
 
 void Neuron::backward(std::vector<double> last_input, double grad)
 {
+
     this->bgrad += grad;
     for (int i = 0; i < this->wgrad.size(); i++)
     {
