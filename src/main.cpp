@@ -3,12 +3,14 @@
 #include <vector>
 #include <iomanip>
 #include <cmath>
+
 #include "engine/DenseLayer.cpp"
+
 #include "engine/ReLuLayer.cpp"
 #include "engine/LeakyRelu.cpp"
-#include "engine/SoftmaxLayer.cpp"
-#include "engine/MeanSquaredErrorLoss.cpp"
 #include "engine/SigmoidLayer.cpp"
+
+#include "engine/MeanSquaredErrorLoss.cpp"
 
 using namespace std;
 

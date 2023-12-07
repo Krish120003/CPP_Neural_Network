@@ -1,3 +1,8 @@
+/*
+WARNING: This file is UNTESTED!
+This code may be incorrect or non-functional.
+*/
+
 #include <vector>
 
 class CrossEntropyLoss
